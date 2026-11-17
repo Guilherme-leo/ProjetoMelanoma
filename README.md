@@ -107,3 +107,8 @@ Depois de cada etapa, abra `resumo.json` e `erros.csv` e olhe a pasta `exemplos/
 | 06 | 5.1.5 | Melhoria de Imagens (realce) + Cores (CIELAB) |
 | 07 | 5.1.6 | Transformada de Fourier (filtragem na frequência) |
 | 08 | 5.1.7 | Transformações geométricas + Fundamentos (normalização) |
+
+## 7. Artigo Completo
+
+Para mais detalhes sobre a fundamentação teórica, metodologia e resultados obtidos ao longo do desenvolvimento deste pipeline, consulte o documento oficial:
+**[Pré-processamento de imagens dermatoscópicas para apoio à triagem de melanoma](https://docs.google.com/document/d/1kNc_jokgjRy45pVe7nd7nU__ZfcJ1CHY3Quaag9uElo/edit?usp=sharing)**
