@@ -1,0 +1,9 @@
+# Python 3.9 ou superior
+numpy>=1.23
+opencv-python>=4.7          # obrigatoria pela disciplina (OpenCV)
+tqdm>=4.64                  # barra de progresso
+matplotlib>=3.5             # graficos da etapa 01 (distribuicao de classes / resolucoes)
+
+# Proximas fases do projeto (segmentacao, descritores e classificacao) - ainda nao usadas:
+# scikit-learn>=1.2
+# scikit-image>=0.20

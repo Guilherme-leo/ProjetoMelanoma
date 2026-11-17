@@ -1,0 +1,11 @@
+Extraia aqui os arquivos do ISIC 2017 (lista completa em ../../DADOS_ISIC.md).
+
+Estrutura esperada:
+  ISIC-2017_Training_Data\                 imagens ISIC_xxxxxxx.jpg (os *_superpixels.png podem ser apagados)
+  ISIC-2017_Training_Part1_GroundTruth\    mascaras ISIC_xxxxxxx_segmentation.png
+  ISIC-2017_Training_Part3_GroundTruth.csv
+  ISIC-2017_Validation_Data\ , ISIC-2017_Validation_Part1_GroundTruth\ , ISIC-2017_Validation_Part3_GroundTruth.csv
+  ISIC-2017_Test_v2_Data\    , ISIC-2017_Test_v2_Part1_GroundTruth\    , ISIC-2017_Test_v2_Part3_GroundTruth.csv
+
+Se o zip criar uma pasta a mais (ex.: ISIC-2017_Training_Data\ISIC-2017_Training_Data\), tudo bem:
+o 01_inventario.py procura as pastas em qualquer nivel abaixo desta.

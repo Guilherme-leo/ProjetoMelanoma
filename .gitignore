@@ -1,0 +1,18 @@
+# Ambiente virtual do Python
+.venv/
+venv/
+env/
+
+# Artigo (.docx e versoes exportadas)
+artigo/
+
+# Dataset ISIC (~12 GB) - mantem so o LEIA-ME com as instrucoes
+dados/isic2017/*
+!dados/isic2017/LEIA-ME.txt
+
+# Saidas do pipeline (saidas/, saidas_teste/, ...)
+saidas*/
+
+# Cache do Python
+__pycache__/
+*.pyc
