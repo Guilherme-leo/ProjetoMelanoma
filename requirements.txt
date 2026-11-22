@@ -2,8 +2,9 @@
 numpy>=1.23
 opencv-python>=4.7          # obrigatoria pela disciplina (OpenCV)
 tqdm>=4.64                  # barra de progresso
-matplotlib>=3.5             # graficos da etapa 01 (distribuicao de classes / resolucoes)
+matplotlib>=3.5             # graficos (distribuicao de classes, IoU, ROC, matriz de confusao)
+scikit-learn>=1.2           # etapa 11 (classificacao); instala junto o joblib
 
-# Proximas fases do projeto (segmentacao, descritores e classificacao) - ainda nao usadas:
-# scikit-learn>=1.2
-# scikit-image>=0.20
+# Etapa 12 (CNN) e OPCIONAL e nao e instalada por este arquivo, por ser pesada.
+# Para CPU:  pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+# Para GPU:  veja o comando para a sua versao de CUDA em https://pytorch.org/get-started/locally/
