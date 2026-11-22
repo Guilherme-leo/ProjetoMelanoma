@@ -4,7 +4,7 @@ Disciplina: Processamento de Imagens (UFRPE). Autores: Guilherme Leonardo Guimar
 
 > **Ferramenta de apoio, não de diagnóstico.** O sistema só prepara as imagens e extrai medidas objetivas para ajudar o dermatologista. Ele **não** dá diagnóstico e **não** substitui o exame clínico nem a biópsia.
 
-Este repositório contém a fase atual do projeto: o **pipeline de pré-processamento**. Ele tem 8 etapas separadas, que rodam em sequência. Cada etapa lê a saída da anterior e grava a sua própria saída em uma pasta numerada. As fases de segmentação, extração de descritores (ABCD) e classificação ainda serão implementadas.
+Este repositório contém a fase atual do projeto: o **pipeline de pré-processamento**. Ele tem 8 etapas implementadas, que rodam em sequência. Cada etapa lê a saída da anterior e grava a sua própria saída em uma pasta numerada. As fases de segmentação, extração de descritores (ABCD) e classificação ainda serão implementadas.
 
 ## 1. Estrutura de pastas
 
@@ -14,13 +14,18 @@ ProjetoMelanoma/
 ├── DADOS_ISIC.md              ← o que baixar do ISIC, licença e citação
 ├── requirements.txt
 ├── dados/
-│   └── isic2017/              ← coloque aqui os arquivos baixados (ver DADOS_ISIC.md, seção 6)
+│   └── isic2017/              ← coloque aqui os arquivos baixados (ver DADOS_ISIC.md, seção 3)
 ├── scripts/
 │   ├── comum.py               ← utilitários (leitura/escrita, log, manifesto, exemplos)
 │   ├── 01_inventario.py       ← valida a base e gera o manifesto
 │   ├── 02_redimensionamento.py
 │   ├── 03_remocao_bordas.py   ← vinheta/bordas pretas + campo de visão (FOV)
 │   ├── 04_remocao_pelos.py    ← black-hat linear + inpainting (e reflexos)
+│   ├── 05_constancia_cor.py   ← Shades of Gray no FOV
+│   ├── 06_realce_contraste.py ← CLAHE no canal L*
+│   ├── 07_filtragem_fourier.py ← filtro passa-baixa
+│   ├── 08_padronizacao.py     ← tamanho fixo e estatísticas do treino
+│   └── juncao.py              ← executa o pipeline em sequência
 └── saidas/                    ← criada na execução: 01_inventario/, 02_redimensionamento/, ...
 ```
 
@@ -76,7 +81,22 @@ python scripts/04_remocao_pelos.py --entrada saidas/03_remocao_bordas --saida sa
 ```
 
 
-Com a mesma `--semente` (padrão 42), todas as etapas escolhem **as mesmas imagens** de exemplo, então dá para acompanhar uma lesão do começo ao fim. Para ver todos os parâmetros de uma etapa:
+```bash
+python scripts/05_constancia_cor.py --entrada saidas/04_remocao_pelos --saida saidas/05_constancia_cor --exemplos 6
+python scripts/06_realce_contraste.py --entrada saidas/05_constancia_cor --saida saidas/06_realce_contraste --exemplos 6
+python scripts/07_filtragem_fourier.py --entrada saidas/06_realce_contraste --saida saidas/07_filtragem_fourier --exemplos 6
+python scripts/08_padronizacao.py --entrada saidas/07_filtragem_fourier --saida saidas/08_padronizacao --exemplos 6
+```
+
+### Opção B: pipeline completo
+
+```bash
+python scripts/juncao.py --dados dados/isic2017 --saidas saidas --exemplos 6
+```
+
+Use `--de 5 --ate 8` para retomar a partir da etapa 05 quando a saída da 04 já existir. Consulte `python scripts/juncao.py --help` para outras opções.
+
+Com a mesma `--semente` (padrão 42) e os mesmos IDs de entrada, as etapas 02 a 08 escolhem as mesmas imagens de exemplo. O inventário escolhe exemplos por classe. Para ver todos os parâmetros de uma etapa:
 
 ```bash
 python scripts/04_remocao_pelos.py --help
@@ -94,6 +114,16 @@ Depois de cada etapa, abra `resumo.json` e `erros.csv` e olhe a pasta `exemplos/
 | 02 redimensionamento | Nenhuma imagem com lado maior diferente de 512 (colunas `largura`/`altura` do manifesto). Nos exemplos, a lesão não pode aparecer distorcida. |
 | 03 bordas | Nos exemplos, o contorno amarelo do FOV deve acompanhar a vinheta preta. Filtre `fov_suspeito = 1` no manifesto e olhe essas imagens uma a uma. `borda_detectada` informa quantas imagens tinham vinheta (dado para o artigo). |
 | 04 pelos | A máscara do painel do meio deve marcar os pelos e **não** os pontos/glóbulos da lesão. Ordene o manifesto por `fracao_pelos` e olhe as maiores. Se sobrar pelo, diminua `--limiar`. Se estiver apagando estrutura da lesão, aumente `--alongamento-min`. |
+| 05 cor | Compare os painéis antes/depois, procurando correções excessivas e canais saturados. Ordene por `fracao_cor_valida_fov` e examine as imagens com `cor_poucos_pixels = 1`; sem pixels válidos, a imagem vai para `erros.csv`. Os campos `iluminante_b/g/r` registram a estimativa normalizada. A correção altera as cores e não garante fidelidade clínica. |
+| 06 contraste | Compare os painéis e `contraste_rms_antes/depois`; aumento do contraste não demonstra melhora clínica. |
+| 07 Fourier | Inspecione a suavização e os espectros; confira se bordas e estruturas relevantes continuam visíveis. |
+| 08 padronização | Confira tamanho e alinhamento das máscaras; `normalizacao.json` deve conter estatísticas calculadas apenas sobre pixels do treino. |
+
+Para executar os testes automatizados da etapa 05, com as dependências instaladas:
+
+```bash
+python -m unittest discover -s tests -v
+```
 
 ## 6. Ligação com o artigo
 

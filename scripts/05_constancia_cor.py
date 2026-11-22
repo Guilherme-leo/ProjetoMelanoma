@@ -42,13 +42,16 @@ def shades_of_gray(img: np.ndarray, valido: np.ndarray, p: float) -> Tuple[np.nd
     """Devolve (imagem corrigida uint8, iluminante normalizado [B,G,R])."""
     f = img.astype(np.float64) / 255.0
     pix = f[valido]
-    if pix.shape[0] < 100:  # muito poucos pixels validos: usa a imagem inteira
-        pix = f.reshape(-1, 3)
-    if np.isinf(p):
-        e = pix.max(axis=0)
+    if pix.shape[0] == 0:
+        raise ValueError("nenhum pixel valido para estimar o iluminante")
+    maximos = pix.max(axis=0)
+    if np.any(maximos == 0):
+        raise ValueError("canal sem intensidade valida para estimar o iluminante")
+    if np.isposinf(p):
+        e = maximos
     else:
-        e = np.power(np.mean(np.power(pix, p), axis=0), 1.0 / p)
-    e = np.maximum(e, 1e-6)
+        # Escala por canal para evitar underflow em expoentes grandes.
+        e = maximos * np.power(np.mean(np.power(pix / maximos, p), axis=0), 1.0 / p)
     e = e / np.linalg.norm(e)
     ganho = 1.0 / (np.sqrt(3.0) * e)
     corrigida = np.clip(f * ganho[None, None, :], 0.0, 1.0)
@@ -62,14 +65,19 @@ def processar(linha: Dict, ctx: comum.Contexto) -> Dict:
     fov = comum.mascara_ou_cheia(linha.get("fov"), img.shape[:2]) > 0
     maxc, minc = img.max(axis=2), img.min(axis=2)
     valido = fov & (maxc < prm["saturado"]) & (minc > prm["escuro"])
-    saida, e = shades_of_gray(img, valido, prm["p"])
+    n_fov = int(fov.sum())
+    n_validos = int(valido.sum())
+    saida, e = shades_of_gray(img, valido, float(prm["p"]))
 
     d = ctx.destino("imagens", iid)
     comum.salvar_imagem(d, saida)
     linha.update({"imagem": d, "iluminante_b": round(float(e[0]), 4),
-                  "iluminante_g": round(float(e[1]), 4), "iluminante_r": round(float(e[2]), 4)})
+                  "iluminante_g": round(float(e[1]), 4), "iluminante_r": round(float(e[2]), 4),
+                  "pixels_cor_validos": n_validos,
+                  "fracao_cor_valida_fov": round(n_validos / n_fov, 6) if n_fov else 0.0,
+                  "cor_poucos_pixels": int(n_validos < 100)})
     if iid in ctx.exemplos:
-        comum.salvar_exemplo(ctx.saida, iid, [("antes", img), (f"Shades of Gray p={prm['p']:g}", saida)])
+        comum.salvar_exemplo(ctx.saida, iid, [("antes", img), (f"Shades of Gray p={float(prm['p']):g}", saida)])
     return linha
 
 
@@ -82,7 +90,10 @@ def main() -> int:
     args = p.parse_args()
     if not (args.p >= 1):
         p.error("--p deve ser >= 1")
-    params = {"p": args.p, "saturado": args.saturado, "escuro": args.escuro}
+    if not (0 <= args.escuro < args.saturado <= 255):
+        p.error("exige 0 <= --escuro < --saturado <= 255")
+    params = {"p": "inf" if np.isposinf(args.p) else args.p,
+              "saturado": args.saturado, "escuro": args.escuro}
     return comum.executar_etapa("05_constancia_cor", args, processar, params,
                                 "Shades of Gray (Minkowski p) + ganho diagonal de von Kries.")
 
