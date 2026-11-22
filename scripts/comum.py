@@ -41,7 +41,7 @@ except ImportError:  # pragma: no cover
         return iteravel
 
 # Colunas do manifesto que guardam caminhos de arquivo.
-CAMPOS_CAMINHO = ("imagem", "mascara", "fov", "pelos")
+CAMPOS_CAMINHO = ("imagem", "mascara", "fov", "pelos", "mascara_pred")
 NOME_MANIFESTO = "manifesto.csv"
 
 

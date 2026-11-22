@@ -6,7 +6,9 @@ Cada etapa le a pasta da etapa anterior e grava na sua propria pasta numerada:
 
   dados/isic2017  -> 01_inventario -> 02_redimensionamento -> 03_remocao_bordas
   -> 04_remocao_pelos -> 05_constancia_cor -> 06_realce_contraste
-  -> 07_filtragem_fourier -> 08_padronizacao
+  -> 07_filtragem_fourier -> 08_padronizacao -> 09_segmentacao
+  -> 10_descritores -> 11_classificacao
+  (12_cnn e opcional, le a pasta 08_padronizacao e so roda com --ate 12)
 
 Exemplos
   # tudo, do inicio ao fim, com 6 exemplos antes/depois por etapa
@@ -46,7 +48,14 @@ ETAPAS = [
     (6, "06_realce_contraste.py", "06_realce_contraste"),
     (7, "07_filtragem_fourier.py", "07_filtragem_fourier"),
     (8, "08_padronizacao.py", "08_padronizacao"),
+    (9, "09_segmentacao.py", "09_segmentacao"),
+    (10, "10_descritores.py", "10_descritores"),
+    (11, "11_classificacao.py", "11_classificacao"),
+    (12, "12_cnn.py", "12_cnn"),  # opcional: exige PyTorch; so roda com --ate 12
 ]
+# Etapas que nao leem a etapa imediatamente anterior.
+ENTRADA_ESPECIAL = {12: "08_padronizacao"}
+ULTIMA_PADRAO = 11
 
 
 def parse_extras(itens: List[str]) -> Dict[int, List[str]]:
@@ -65,7 +74,8 @@ def main() -> int:
     p.add_argument("--dados", default="dados/isic2017", help="Pasta com os arquivos do ISIC 2017 (entrada da etapa 01).")
     p.add_argument("--saidas", default="saidas", help="Pasta onde ficam as pastas numeradas de cada etapa.")
     p.add_argument("--de", type=int, default=1, help="Primeira etapa a executar.")
-    p.add_argument("--ate", type=int, default=len(ETAPAS), help="Ultima etapa a executar.")
+    p.add_argument("--ate", type=int, default=ULTIMA_PADRAO,
+                   help="Ultima etapa a executar (12 = CNN opcional, exige PyTorch).")
     p.add_argument("--exemplos", type=int, default=0, help="Paineis antes/depois por etapa.")
     p.add_argument("--semente", type=int, default=42)
     p.add_argument("--amostra", type=int, default=0, help="(etapa 01) N imagens por conjunto, estratificado.")
@@ -86,10 +96,14 @@ def main() -> int:
     for num, script, pasta in ETAPAS:
         if num < args.de or num > args.ate:
             continue
-        entrada = Path(args.dados) if num == 1 else saidas / ETAPAS[num - 2][2]
-        if num > 1 and not (entrada / "manifesto.csv").is_file() and not args.simular:
-            print(f"[ERRO] Etapa {num:02d} precisa de '{entrada / 'manifesto.csv'}'. "
-                  f"Rode antes a etapa {num - 1:02d}.")
+        if num == 1:
+            entrada = Path(args.dados)
+        else:
+            entrada = saidas / ENTRADA_ESPECIAL.get(num, ETAPAS[num - 2][2])
+        # a etapa 11 le descritores.csv; as demais leem manifesto.csv
+        exigido = entrada / ("descritores.csv" if num == 11 else "manifesto.csv")
+        if num > 1 and not exigido.is_file() and not args.simular:
+            print(f"[ERRO] Etapa {num:02d} precisa de '{exigido}'. Rode antes a etapa que gera essa pasta.")
             return 1
         cmd = [sys.executable, str(PASTA_SCRIPTS / script), "--entrada", str(entrada),
                "--saida", str(saidas / pasta), "--exemplos", str(args.exemplos),
